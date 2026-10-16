@@ -33,7 +33,9 @@ def quick_note(event: Event, history: list[Event], now: datetime) -> str | None:
     """
     if event.type not in SYMPTOM_TYPES:
         return None
-    n = count_recent(history, event.type, now, days=7)
+    # `history` may or may not already contain `event` (a first log vs. a follow-up update); count it once.
+    others = [e for e in history if e.event_id != event.event_id]
+    n = 1 + count_recent(others, event.type, now, days=7)
     if n <= 1:
         return None
     return f"{_ordinal(n)} {event.type} event in the last 7 days"

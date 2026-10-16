@@ -44,6 +44,8 @@ def test_quick_note_counts_last_7_days():
     hist = [ev(1, "vomit", 1, content="food"), ev(2, "vomit", 3, content="food"), ev(3, "vomit", 20, content="food")]
     new = ev(4, "vomit", 0, content="food")
     assert assess(new, [*hist, new], CAT, NOW).pattern_note == "3rd vomit event in the last 7 days"
+    assert assess(new, hist, CAT, NOW).pattern_note == "3rd vomit event in the last 7 days"  # same answer when history excludes it
+    assert assess(new, [], CAT, NOW).pattern_note is None
 
 
 def test_summary_counts_and_weight():
