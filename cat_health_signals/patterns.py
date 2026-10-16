@@ -12,6 +12,8 @@ from datetime import datetime, timedelta
 
 from .models import CatProfile, Event, EventType, Pattern
 
+SYMPTOM_TYPES = ("vomit", "appetite", "litter", "energy")
+
 
 def count_recent(history: list[Event], event_type: EventType, now: datetime, days: int) -> int:
     """How many events of this type happened in the `days` days before `now`."""
@@ -29,7 +31,7 @@ def quick_note(event: Event, history: list[Event], now: datetime) -> str | None:
 
     Kept deliberately simple (a count); the real patterns live in find_patterns.
     """
-    if event.type not in ("vomit", "appetite", "litter", "energy"):
+    if event.type not in SYMPTOM_TYPES:
         return None
     n = count_recent(history, event.type, now, days=7)
     if n <= 1:

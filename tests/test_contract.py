@@ -1,9 +1,4 @@
-"""Contract tests: the shapes and guarantees the Cat Nanny server relies on.
-
-Add one test file per rule module as rules are implemented (test_followup.py,
-test_patterns.py, test_redflags.py), each with a case that triggers the rule
-and a case that must not.
-"""
+"""Contract tests: the shapes and guarantees the Cat Nanny server relies on."""
 
 from datetime import UTC, datetime, timedelta
 
@@ -32,16 +27,17 @@ def test_missing_required_detail_gives_one_question():
     assert a.follow_up is not None and a.follow_up.field == "content"
 
 
-def test_answer_false_counts_as_answered():
-    e = ev(1, "vomit", content="food", blood=False)
-    assert assess(e, [e], CAT, NOW).red_flags == []
+def test_unknown_fields_are_not_asked_again():
+    e = ev(1, "vomit", content="food", has_blood=None)
+    assert assess(e, [e], CAT, NOW, unknown_fields={"has_blood"}).follow_up.field == "episode_count"
 
 
-def test_example_red_flag_and_alert_level():
-    e = ev(1, "vomit", content="food", blood=True)
+def test_red_flag_and_alert_level():
+    e = ev(1, "vomit", content="food", has_blood=True)
     a = assess(e, [e], CAT, NOW)
     assert a.top_level == "vet_today"
     assert a.needs_family_alert
+    assert a.red_flags[0].say_first.startswith("Please call your vet today.")
 
 
 def test_quick_note_counts_last_7_days():
