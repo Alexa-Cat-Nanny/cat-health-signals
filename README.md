@@ -32,10 +32,10 @@ from cat_health_signals import CatProfile, Event, assess
 
 cat = CatProfile(cat_id="mochi", name="Mochi", sex="female")
 event = Event(event_id="e1", cat_id="mochi", type="vomit",
-              ts=datetime.now(UTC), details={"minutes_after_meal": 10})
+              ts=datetime.now(UTC), details={"content": "food"})
 
 result = assess(event, history=[event], cat=cat, now=datetime.now(UTC))
-result.follow_up    # FollowUp(field='content', question='Was it food, hairball, or liquid?')
+result.follow_up    # FollowUp(field='has_blood', question='Did you see any blood?')
 result.red_flags    # []
 ```
 
@@ -44,15 +44,30 @@ result.red_flags    # []
 | Module | What it decides |
 |---|---|
 | `models.py` | The data contract: `Event`, `CatProfile`, `FollowUp`, `Pattern`, `RedFlag`, `Assessment` |
-| `followup.py` | Required details per event type and the question for each |
-| `patterns.py` | Frequency change, meal timing, food change, weight trend |
-| `redflags.py` | One function per rule, collected in `RULES` |
-| `summary.py` | Timeline and totals for the vet summary |
+| `schemas.py` | Strict detail schemas per event type (`VomitDetails`, `AppetiteDetails`); unknown stays `None` |
+| `followup.py` | The ordered questions per event type, skipping details the user could not answer |
+| `redflags.py` | One function per rule, collected in `RULES`, sorted most urgent first |
+| `patterns.py` | Frequency change, meal timing, food change, weight trend (in progress) |
+| `summary.py` | Timeline and period-over-period counts for the vet summary |
 
-## Status
+## Rules today
 
-Interfaces are stable; the rule tables are being filled in. Entries marked
-`EXAMPLE ONLY` are placeholders for testing the pipeline.
+| Rule | Level | Condition |
+|---|---|---|
+| `male_cat_not_urinating` | emergency | Male cat straining in the litter box without passing urine |
+| `vomit_blood` | vet_today | Blood seen in the vomit |
+| `vomit_low_energy` | vet_today | Vomiting together with low energy |
+| `vomit_three_times_24h` | vet_today | At least the third vomiting episode in 24 hours |
+| `not_eating_24h` | vet_today | Not eating normally for 24 hours or more |
+
+Conversation support covers `vomit` and `appetite`; the other event types are
+stored and counted but have no questions yet.
+
+## Origin
+
+The detail schemas, questions and rules were first written in the team's
+[CatNannyFramework](https://github.com/Alexa-Cat-Nanny/CatNannyFramework)
+conversation prototype and extracted here as a standalone, dependency-free package.
 
 ## Develop
 
