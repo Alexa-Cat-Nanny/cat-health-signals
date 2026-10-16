@@ -1,29 +1,41 @@
-"""Follow-up questions: which details each event type must have, and what to ask when one is missing.
+"""Follow-up questions: the ordered list of details worth asking about for each event type.
 
-TODO(team): fill REQUIRED_DETAILS once the field list is agreed. The single
-vomit entry below is an EXAMPLE so the end-to-end flow can be tested; replace it.
+Ported from CatNannyFramework `catnanny/domain/questionnaire.py`. Questions are
+asked one at a time, in order. A detail the user explicitly could not answer
+("not sure") is recorded in `unknown_fields` and is not asked again.
 """
 
 from __future__ import annotations
 
-from .models import Event, EventType, FollowUp
+from .models import FollowUp
 
-REQUIRED_DETAILS: dict[EventType, list[tuple[str, str]]] = {
-    # event type -> ordered list of (details key, question to ask if the key is missing)
+QUESTIONS: dict[str, list[tuple[str, str]]] = {
     "vomit": [
-        ("content", "Was it food, hairball, or liquid?"),  # EXAMPLE ONLY
+        ("content", "Was it food, a hairball, liquid, or foam?"),
+        ("has_blood", "Did you see any blood?"),
+        ("episode_count", "How many vomiting episodes are you recording?"),
+        ("low_energy", "Did you notice lower energy than usual?"),
+    ],
+    "appetite": [
+        ("status", "Is your cat not eating at all, or eating less than usual?"),
+        ("hours_since_food", "About how many hours since your cat last ate normally?"),
     ],
 }
 
 
-def next_question(event: Event) -> FollowUp | None:
-    """Return the first missing required detail for this event, or None if nothing is missing.
+def missing_fields(event_type: str, details: dict, unknown_fields: list[str] | set[str] = ()) -> list[str]:
+    """Details not yet answered, in asking order, skipping ones marked unknown."""
+    return [key for key, _ in QUESTIONS.get(event_type, [])
+            if details.get(key) is None and key not in unknown_fields]
 
-    Asks at most one question per call, in the order listed in REQUIRED_DETAILS.
-    A detail counts as present when its key exists, even if the value is False
-    (an answer of "no blood" is still an answer).
+
+def next_question(event_type: str, details: dict, unknown_fields: list[str] | set[str] = ()) -> FollowUp | None:
+    """The single next question to ask, or None when every detail is answered or marked unknown.
+
+    A value of False counts as answered ("no blood" is an answer); only None is missing.
     """
-    for field, question in REQUIRED_DETAILS.get(event.type, []):
-        if field not in event.details or event.details[field] is None:
-            return FollowUp(field=field, question=question)
-    return None
+    missing = missing_fields(event_type, details, unknown_fields)
+    if not missing:
+        return None
+    key = missing[0]
+    return FollowUp(field=key, question=dict(QUESTIONS[event_type])[key])
