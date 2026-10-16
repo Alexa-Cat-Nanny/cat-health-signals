@@ -17,13 +17,8 @@ from pydantic import BaseModel, Field
 
 # --- inputs -----------------------------------------------------------------
 
-HealthEventType = Literal["vomit", "appetite", "litter", "energy"]
-"""Observations about how the cat is doing (logged with `log_health_event`)."""
-
-CareEventType = Literal["meal", "medication", "weight", "food_change", "vet_visit"]
-"""Things a person did for the cat (logged with `log_care_event`)."""
-
 EventType = Literal["vomit", "appetite", "litter", "energy", "meal", "medication", "weight", "food_change", "vet_visit"]
+"""All known event types. Only those in `schemas.SUPPORTED_EVENT_TYPES` have a detail schema and questions today."""
 
 EventSource = Literal["voice", "sensor", "seed"]
 
@@ -31,9 +26,9 @@ EventSource = Literal["voice", "sensor", "seed"]
 class Event(BaseModel):
     """One timestamped thing that happened to one cat.
 
-    `details` holds the type-specific fields (for example `content` and `blood`
-    for a vomit). Which keys each type uses is decided in `followup.py` and the
-    rule modules; the store keeps whatever is given.
+    `details` holds the type-specific fields (for example `content` and
+    `has_blood` for a vomit), validated by `schemas.DETAIL_MODELS`. A key with
+    value None means "unknown"; it is never coerced to False.
     """
 
     event_id: str
@@ -48,7 +43,7 @@ class Event(BaseModel):
 class CatProfile(BaseModel):
     cat_id: str
     name: str
-    sex: Literal["female", "male", "unknown"] = "unknown"
+    sex: Literal["female", "male", "unknown"] | None = "unknown"
     neutered: bool | None = None
     birth_year: int | None = None
     current_food: str | None = None

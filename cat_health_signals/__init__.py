@@ -8,50 +8,54 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from . import fields, followup, patterns, redflags, summary
+from . import followup, patterns, redflags, schemas, summary
 from .models import (
     Assessment,
-    CareEventType,
     CatProfile,
     Event,
     EventType,
     FollowUp,
-    HealthEventType,
     Pattern,
     RedFlag,
     RedFlagLevel,
 )
+from .schemas import DETAIL_MODELS, SUPPORTED_EVENT_TYPES, AppetiteDetails, VomitDetails, validate_details
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "Assessment",
-    "CareEventType",
+    "AppetiteDetails",
     "CatProfile",
+    "DETAIL_MODELS",
     "Event",
     "EventType",
     "FollowUp",
-    "HealthEventType",
     "Pattern",
     "RedFlag",
     "RedFlagLevel",
+    "SUPPORTED_EVENT_TYPES",
+    "VomitDetails",
     "assess",
-    "fields",
     "followup",
     "patterns",
     "redflags",
+    "schemas",
     "summary",
+    "validate_details",
 ]
 
 
-def assess(event: Event, history: list[Event], cat: CatProfile, now: datetime) -> Assessment:
+def assess(event: Event, history: list[Event], cat: CatProfile, now: datetime,
+           unknown_fields: list[str] | set[str] = ()) -> Assessment:
     """Everything the rules conclude about one event.
 
-    `history` is the cat's recent events (at least 60 days) and must already
-    include `event` itself.
+    `history` is the cat's recent events (at least 24 hours, ideally 60 days) and
+    may include `event` itself. `unknown_fields` are details the user said they
+    could not answer, so they are not asked again.
     """
     return Assessment(
-        follow_up=followup.next_question(event),
+        follow_up=followup.next_question(event.type, event.details, unknown_fields),
         red_flags=redflags.check(event, history, cat, now),
         patterns=patterns.find_patterns(history, cat, now),
         pattern_note=patterns.quick_note(event, history, now),
